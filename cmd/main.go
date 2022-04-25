@@ -3,10 +3,10 @@ package main
 import (
 	"enterpret/config"
 	"enterpret/dataaccess"
-	"enterpret/models"
 	"enterpret/server"
-	"enterpret/sources/discourse"
+	sources2 "enterpret/sources"
 	"fmt"
+	"log"
 )
 
 func main() {
@@ -24,23 +24,32 @@ func main() {
 	_ = sources
 
 	ds := dataaccess.NewDataStore()
-	dMp := discourse.NewDiscourseMessageProcessor(ds)
+	sourceProcessor := sources2.NewSourceProcessor(ds)
 
-	_, err := dMp.FetchAndStoreMessages(models.Params{
-		Since:       nil,
-		Before:      nil,
-		SearchQuery: "zoom.us",
-		Source:      "discourse",
-	}, "zoom")
+	for _, t := range config.TC {
+		for _, s := range t.Sources {
+			mp, err := sourceProcessor.GetProcessor(s.Name)
+			if err != nil {
+				fmt.Println("Failed fetching message processor for source "+s.Name, err.Error())
+				return
+			}
 
-	if err != nil {
-		fmt.Println("Failed fetching and storing messages: ", err.Error())
-		return
+			_, err = mp.FetchAndStoreFeedbacks(s.Params, t.Name)
+			if err != nil {
+				fmt.Println("Failed fetching and storing messages: ", err.Error())
+				return
+			}
+		}
 	}
 
-	fmt.Println(ds.FetchMessages(dataaccess.GetSourceOption("discourse"), dataaccess.GetTenantOption("zoom")))
+	messages, _ := ds.FetchFeedbacks("zoom.us", "discourse", 1, 20)
 
-	server.NewServer(ds)
+	for _, m := range messages {
+		log.Default().Println(m.Meta.ID, ": ", m.Data.Message)
+	}
 
-	select {}
+	err := server.NewServer(ds)
+	if err != nil {
+		log.Default().Println("Server ended with error ", err.Error())
+	}
 }

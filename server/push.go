@@ -3,8 +3,9 @@ package server
 import (
 	"encoding/json"
 	"enterpret/dataaccess"
+	"enterpret/models"
 	"enterpret/sources"
-	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -17,14 +18,16 @@ type server struct {
 	sources sources.SourceProcessor
 }
 
-func (s *server) init() {
+func (s *server) init() error {
 
 	http.HandleFunc("/push/message", s.handleMessage)
 
 	err := http.ListenAndServe("localhost:8088", nil)
 	if err != nil {
-		return
+		return err
 	}
+
+	return nil
 }
 
 func (s *server) handleMessage(w http.ResponseWriter, req *http.Request) {
@@ -39,36 +42,47 @@ func (s *server) handleMessage(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	//for name, headers := range req.Header {
-	//	for _, h := range headers {
-	//		fmt.Printf("%v: %v\n", name, h)
-	//	}
-	//}
-
-	var p []byte
-	req.Body.Read(p)
-	fmt.Println(string(p))
-	var reqBody map[string]string
-	err := json.NewDecoder(req.Body).Decode(&reqBody)
+	p, err := io.ReadAll(req.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_, err := w.Write([]byte("Bad Request"))
-		if err != nil {
-			s.logger.Printf("Invalid body received")
-			return
-		}
+		s.badRequestError(w, err)
+		return
+	}
+	var reqBody models.PushRequestBody
+	err = json.Unmarshal(p, &reqBody)
+	if err != nil {
+		s.badRequestError(w, err)
 		return
 	}
 
-	fmt.Println(reqBody)
-
-	if reqBody["source"] == "discourse" {
-
+	if mp, err := s.sources.GetProcessor(reqBody.Source); err != nil {
+		s.badRequestError(w, err)
+		return
+	} else {
+		_, err := mp.IngestAndStoreFeedback(p, reqBody.Tenant)
+		if err != nil {
+			s.badRequestError(w, err)
+			return
+		}
 	}
-	w.Write([]byte(`Successfully received message`))
+
+	w.Write([]byte(`Successfully processed message`))
 }
 
-func NewServer(store dataaccess.DataStore) {
+func (s *server) badRequestError(w http.ResponseWriter, er error) {
+	w.WriteHeader(http.StatusBadRequest)
+	errStr := ""
+	if er != nil {
+		errStr = er.Error()
+	}
+	_, err := w.Write([]byte("Bad Request: " + errStr))
+	if err != nil {
+		s.logger.Printf("Invalid body received")
+		return
+	}
+	return
+}
+
+func NewServer(store dataaccess.DataStore) error {
 	s := server{
 		//client:  http.Client{},
 		logger:  log.New(os.Stdout, "logger: ", 1),
@@ -76,5 +90,5 @@ func NewServer(store dataaccess.DataStore) {
 		sources: sources.NewSourceProcessor(store),
 	}
 
-	s.init()
+	return s.init()
 }

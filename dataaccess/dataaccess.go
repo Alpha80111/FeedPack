@@ -4,72 +4,71 @@ import (
 	"enterpret/models"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 )
 
+//DataStore interface that supports storing and fetching feedbacks
 type DataStore interface {
-	Store(ingest models.MessageIngest) error
-	FetchMessages(opts ...Opts) ([]models.MessageIngest, error)
+	Store(ingest models.FeedbackIngest) error
+	FetchFeedbacks(tenant, source string, page, size int) ([]models.FeedbackIngest, error)
 }
 
 type params struct {
 	source string
 	tenant string
-}
-
-type Opts func(params *params)
-
-func GetTenantOption(tenant string) Opts {
-	return func(params *params) {
-		params.tenant = tenant
-	}
-}
-
-func GetSourceOption(source string) Opts {
-	return func(params *params) {
-		params.source = source
-	}
+	page   int
+	size   int
 }
 
 type dataStore struct {
-	store map[string]map[string]map[string]models.MessageIngest //map[tenant]map[source]map[post_id]models.MessageIngest
+	logger *log.Logger
+	order  map[string]map[string][]string                         //map[tenant]map[source][]string(postIDs)
+	store  map[string]map[string]map[string]models.FeedbackIngest //map[tenant]map[source]map[post_id]models.FeedbackIngest
 }
 
-func (d *dataStore) Store(ingest models.MessageIngest) error {
-	fmt.Printf("Received message: %s, %s, %s\n", ingest.Meta.Tenant, ingest.Meta.Source, ingest.Meta.ID)
+//Store stores a message ingest passed to it
+func (d *dataStore) Store(ingest models.FeedbackIngest) error {
 	if _, ok := d.store[ingest.Meta.Tenant]; !ok {
-		d.store[ingest.Meta.Tenant] = map[string]map[string]models.MessageIngest{}
+		d.store[ingest.Meta.Tenant] = map[string]map[string]models.FeedbackIngest{}
+		d.order[ingest.Meta.Tenant] = map[string][]string{}
 	}
 	if _, ok := d.store[ingest.Meta.Tenant][ingest.Meta.Source]; !ok {
-		d.store[ingest.Meta.Tenant][ingest.Meta.Source] = map[string]models.MessageIngest{}
+		d.store[ingest.Meta.Tenant][ingest.Meta.Source] = map[string]models.FeedbackIngest{}
+		d.order[ingest.Meta.Tenant][ingest.Meta.Source] = []string{}
 	}
 	if _, ok := d.store[ingest.Meta.Tenant][ingest.Meta.Source][ingest.Meta.ID]; !ok {
 		d.store[ingest.Meta.Tenant][ingest.Meta.Source][ingest.Meta.ID] = ingest
+		d.order[ingest.Meta.Tenant][ingest.Meta.Source] = append(d.order[ingest.Meta.Tenant][ingest.Meta.Source], ingest.Meta.ID)
+		fmt.Printf("Storing message: %s, %s, %s\n", ingest.Meta.Tenant, ingest.Meta.Source, ingest.Meta.ID)
+	} else {
+		fmt.Printf("Duplicate message: %s, %s, %s\n", ingest.Meta.Tenant, ingest.Meta.Source, ingest.Meta.ID)
 	}
 	return nil
 }
 
-func (d *dataStore) FetchMessages(opts ...Opts) ([]models.MessageIngest, error) {
-	p := params{
-		source: "",
-		tenant: "",
+//FetchFeedbacks fetches messages within the parameters passed
+func (d *dataStore) FetchFeedbacks(tenant, source string, page, size int) ([]models.FeedbackIngest, error) {
+
+	if source == "" || tenant == "" || page <= 0 || size <= 0 {
+		return []models.FeedbackIngest{}, errors.New("no valid options passed")
 	}
-	for _, opt := range opts {
-		opt(&p)
-	}
-	if p.source == "" && p.tenant == "" {
-		return []models.MessageIngest{}, errors.New("no valid options passed")
-	}
-	var messages []models.MessageIngest
-	if p.tenant != "" {
-		if p.source != "" {
-			for i := range d.store[p.tenant][p.source] {
-				messages = append(messages, d.store[p.tenant][p.source][i])
+	var messages []models.FeedbackIngest
+	if tenant != "" {
+		if source != "" {
+			for i := (page - 1) * size; i < page*size && i < len(d.order[tenant][source]); i++ {
+				messages = append(messages, d.store[tenant][source][d.order[tenant][source][i]])
 			}
 		}
 	}
 	return messages, nil
 }
 
+//NewDataStore initializes and returns a new DataStore
 func NewDataStore() DataStore {
-	return &dataStore{store: map[string]map[string]map[string]models.MessageIngest{}}
+	return &dataStore{
+		logger: log.New(os.Stdout, "Data Store: ", 1),
+		store:  map[string]map[string]map[string]models.FeedbackIngest{},
+		order:  map[string]map[string][]string{},
+	}
 }

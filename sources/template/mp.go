@@ -7,18 +7,18 @@ import (
 
 type template struct{}
 
-func (t *template) FetchAndStoreMessages(params models.Params, tenant string) ([]models.MessageIngest, error) {
-	return []models.MessageIngest{}, nil
+func (t *template) FetchAndStoreFeedbacks(params models.Params, tenant string) ([]models.FeedbackIngest, error) {
+	return []models.FeedbackIngest{}, nil
 }
 
-func (t *template) IngestMessage(blob []byte, tenant string) (models.MessageIngest, error) {
-	return models.MessageIngest{}, nil
+func (t *template) IngestAndStoreFeedback(blob []byte, tenant string) (models.FeedbackIngest, error) {
+	return models.FeedbackIngest{}, nil
 }
 
-func (t *template) IsSimilar(blob []byte, ingest models.MessageIngest) (bool, error) {
+func (t *template) IsSimilar(blob []byte, ingest models.FeedbackIngest) (bool, error) {
 	return false, nil
 }
 
-func NewTemplateSourceProcessor() sourceInterface.MessageProcessor {
+func NewTemplateSourceProcessor() sourceInterface.FeedbackProcessor {
 	return &template{}
 }

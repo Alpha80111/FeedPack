@@ -7,17 +7,21 @@ import (
 	"errors"
 )
 
+const (
+	DiscourseSourceKey = "discourse"
+)
+
 type SourceProcessor interface {
-	GetProcessor(source string) (_interface.MessageProcessor, error)
+	GetProcessor(source string) (_interface.FeedbackProcessor, error)
 }
 
 type sourceProcessor struct {
-	discourse _interface.MessageProcessor
+	discourse _interface.FeedbackProcessor
 }
 
-func (s *sourceProcessor) GetProcessor(source string) (_interface.MessageProcessor, error) {
+func (s *sourceProcessor) GetProcessor(source string) (_interface.FeedbackProcessor, error) {
 	switch source {
-	case "discourse":
+	case DiscourseSourceKey:
 		return s.discourse, nil
 	}
 
@@ -25,7 +29,7 @@ func (s *sourceProcessor) GetProcessor(source string) (_interface.MessageProcess
 }
 
 func NewSourceProcessor(store dataaccess.DataStore) SourceProcessor {
-	dMP := discourse.NewDiscourseMessageProcessor(store)
+	dMP := discourse.NewDiscourseFeedbackProcessor(store)
 
 	return &sourceProcessor{dMP}
 }
