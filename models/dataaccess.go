@@ -29,5 +29,5 @@ type Data struct {
 type Params struct {
 	Since, Before            *time.Time
 	SearchQuery              string
-	SourceSpecificParameters map[string]string
+	SourceSpecificParameters map[string]interface{}
 }

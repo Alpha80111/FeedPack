@@ -12,7 +12,6 @@ import (
 )
 
 type server struct {
-	client  http.Client
 	logger  *log.Logger
 	ds      dataaccess.DataStore
 	sources sources.SourceProcessor
@@ -54,11 +53,11 @@ func (s *server) handleMessage(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if mp, err := s.sources.GetProcessor(reqBody.Source); err != nil {
+	if fp, err := s.sources.GetProcessor(reqBody.Source); err != nil {
 		s.badRequestError(w, err)
 		return
 	} else {
-		_, err := mp.IngestAndStoreFeedback(p, reqBody.Tenant)
+		_, err := fp.IngestAndStoreFeedback(p, reqBody.Tenant)
 		if err != nil {
 			s.badRequestError(w, err)
 			return
@@ -84,7 +83,6 @@ func (s *server) badRequestError(w http.ResponseWriter, er error) {
 
 func NewServer(store dataaccess.DataStore) error {
 	s := server{
-		//client:  http.Client{},
 		logger:  log.New(os.Stdout, "logger: ", 1),
 		ds:      store,
 		sources: sources.NewSourceProcessor(store),

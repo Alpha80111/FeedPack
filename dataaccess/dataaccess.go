@@ -9,6 +9,7 @@ import (
 )
 
 //DataStore interface that supports storing and fetching feedbacks
+//go:generate mockgen -package=mock -destination=mock/dataaccess.go -source=dataaccess.go DataStore
 type DataStore interface {
 	Store(ingest models.FeedbackIngest) error
 	FetchFeedbacks(tenant, source string, page, size int) ([]models.FeedbackIngest, error)
@@ -29,6 +30,9 @@ type dataStore struct {
 
 //Store stores a message ingest passed to it
 func (d *dataStore) Store(ingest models.FeedbackIngest) error {
+	if ingest.Meta.Tenant == "" || ingest.Meta.Source == "" || ingest.Meta.ID == "" {
+		return errors.New("invalid feedback, tenant, source and ID cannot be nil")
+	}
 	if _, ok := d.store[ingest.Meta.Tenant]; !ok {
 		d.store[ingest.Meta.Tenant] = map[string]map[string]models.FeedbackIngest{}
 		d.order[ingest.Meta.Tenant] = map[string][]string{}

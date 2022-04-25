@@ -17,27 +17,36 @@ import (
 )
 
 const (
-	source = "discourse"
+	source         = "discourse"
+	maxPages       = 20
+	defaultTimeout = 3 * time.Minute
 )
 
 type discourseFeedbackProcessor struct {
-	store  dataaccess.DataStore
-	logger *log.Logger
-	client http.Client
+	store             dataaccess.DataStore
+	logger            *log.Logger
+	client            *http.Client
+	feedbackSearchUrl string
+	feedbackFetchUrl  string
 }
 
+//NewDiscourseFeedbackProcessor initializes and returns a new discourse feedback processor
 func NewDiscourseFeedbackProcessor(store dataaccess.DataStore) sourceInterface.FeedbackProcessor {
-	return &discourseFeedbackProcessor{store: store,
+	return &discourseFeedbackProcessor{
+		store:  store,
 		logger: log.New(os.Stdout, "discourseFeedbackProcessor: ", 1),
-		client: http.Client{
+		client: &http.Client{
 			Transport: http.DefaultTransport,
-			Timeout:   time.Minute,
-		}}
+			Timeout:   defaultTimeout,
+		},
+		feedbackSearchUrl: "https://meta.discourse.org/search.json?page=%d&q=%s",
+		feedbackFetchUrl:  "https://meta.discourse.org/t/:topic_id/posts.json?post_ids%5B%5D=:post_id",
+	}
 }
 
-func (p *discourseFeedbackProcessor) fetchFeedbacks(params models.Params, page int) (models.DiscourseSearchResponse, error) {
+func (p *discourseFeedbackProcessor) fetchPaginatedFeedbacks(params models.Params, page int) (models.DiscourseSearchResponse, error) {
 
-	urlString := fmt.Sprintf("https://meta.discourse.org/search.json?page=%d&q=%s", page, params.SearchQuery)
+	urlString := fmt.Sprintf(p.feedbackSearchUrl, page, params.SearchQuery)
 
 	if params.SearchQuery != "" {
 		urlString += "+"
@@ -82,18 +91,17 @@ func (p *discourseFeedbackProcessor) fetchFeedbacks(params models.Params, page i
 
 func (p *discourseFeedbackProcessor) fetchAndStoreIndividualFeedback(id int, topicId int, tenant string) (models.FeedbackIngest, error) {
 
-	urlString := "https://meta.discourse.org/t/:topic_id/posts.json?post_ids%5B%5D=:post_id"
+	urlString := p.feedbackFetchUrl
 	urlString = strings.ReplaceAll(urlString, ":topic_id", fmt.Sprint(topicId))
 	urlString = strings.ReplaceAll(urlString, ":post_id", fmt.Sprint(id))
 
-	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodGet, urlString, nil)
 	if err != nil {
 		p.logger.Printf("Error: error creating request for post %d in topic %d: "+err.Error(), id, topicId)
 		return models.FeedbackIngest{}, err
 	}
 
-	res, err := client.Do(req)
+	res, err := p.client.Do(req)
 	if err != nil {
 		p.logger.Println("Error: ", err.Error())
 		return models.FeedbackIngest{}, err
@@ -119,10 +127,10 @@ func (p *discourseFeedbackProcessor) FetchAndStoreFeedbacks(params models.Params
 	page := 1
 	var messages []models.FeedbackIngest
 
-	for true {
+	for page <= maxPages {
 		var searchResp models.DiscourseSearchResponse
 		var err error
-		searchResp, err = p.fetchFeedbacks(params, page)
+		searchResp, err = p.fetchPaginatedFeedbacks(params, page)
 		if err != nil {
 			return nil, err
 		}

@@ -11,6 +11,7 @@ const (
 	DiscourseSourceKey = "discourse"
 )
 
+//go:generate mockgen -package=mock -destination=mock/source.go -source=source.go SourceProcessor
 type SourceProcessor interface {
 	GetProcessor(source string) (_interface.FeedbackProcessor, error)
 }

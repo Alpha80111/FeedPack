@@ -28,13 +28,13 @@ func main() {
 
 	for _, t := range config.TC {
 		for _, s := range t.Sources {
-			mp, err := sourceProcessor.GetProcessor(s.Name)
+			fp, err := sourceProcessor.GetProcessor(s.Name)
 			if err != nil {
 				fmt.Println("Failed fetching message processor for source "+s.Name, err.Error())
 				return
 			}
 
-			_, err = mp.FetchAndStoreFeedbacks(s.Params, t.Name)
+			_, err = fp.FetchAndStoreFeedbacks(s.Params, t.Name)
 			if err != nil {
 				fmt.Println("Failed fetching and storing messages: ", err.Error())
 				return
