@@ -2,7 +2,11 @@ package server
 
 import (
 	"enterpret/dataaccess"
+	"enterpret/models"
+	mock2 "enterpret/sources/mock"
+	mock3 "enterpret/sources/sourceinterface/mock"
 	"fmt"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -12,7 +16,13 @@ import (
 
 func TestNewServer(t *testing.T) {
 	go func() {
-		err := NewServer(dataaccess.NewDataStore())
+		ctrl := gomock.NewController(t)
+		mSP := mock2.NewMockSourceProcessor(ctrl)
+		fP := mock3.NewMockFeedbackProcessor(ctrl)
+		fP.EXPECT().FetchAndStoreFeedbacks(gomock.Any(), gomock.Any()).Return([]models.FeedbackIngest{}, nil).AnyTimes()
+		fP.EXPECT().IngestAndStoreFeedback(gomock.Any(), gomock.Any()).Return(models.FeedbackIngest{}, nil).AnyTimes()
+		mSP.EXPECT().GetProcessor(gomock.Any()).Return(fP, nil).AnyTimes()
+		err := NewServer(dataaccess.NewDataStore(), mSP)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
@@ -196,6 +206,28 @@ func TestNewServer(t *testing.T) {
     "tenant": "zoom.us",
     "page": 1,
     "size": 50
+}`)
+
+	req, err = http.NewRequest(http.MethodPost, url, payload)
+	assert.Nil(t, err)
+
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err = client.Do(req)
+	assert.Nil(t, err)
+
+	defer res.Body.Close()
+
+	body, err = ioutil.ReadAll(res.Body)
+	assert.Nil(t, err)
+
+	url = "http://localhost:8088/pull/feedback"
+	payload = strings.NewReader(`{
+    "source": "discourse",
+    "tenant": "test",
+    "params": {
+        "searchQuery": "test"
+    }
 }`)
 
 	req, err = http.NewRequest(http.MethodPost, url, payload)

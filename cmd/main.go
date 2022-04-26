@@ -16,7 +16,7 @@ func main() {
 	wg.Add(1)
 
 	go func() {
-		err := server.NewServer(ds)
+		err := server.NewServer(ds, sourceProcessor)
 		if err != nil {
 			log.Default().Println("Server ended with error ", err.Error())
 		}

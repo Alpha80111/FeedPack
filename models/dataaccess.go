@@ -27,7 +27,8 @@ type Data struct {
 
 //Params are used by the pull workflow to fetch messages from a source
 type Params struct {
-	Since, Before            *time.Time
-	SearchQuery              string
-	SourceSpecificParameters map[string]interface{}
+	Since                    *time.Time             `json:"since"`
+	Before                   *time.Time             `json:"before"`
+	SearchQuery              string                 `json:"searchQuery"`
+	SourceSpecificParameters map[string]interface{} `json:"sourceSpecificParameters"`
 }
