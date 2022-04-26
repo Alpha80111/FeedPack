@@ -34,19 +34,39 @@ func (m *MockDataStore) EXPECT() *MockDataStoreMockRecorder {
 	return m.recorder
 }
 
-// FetchFeedbacks mocks base method.
-func (m *MockDataStore) FetchFeedbacks(tenant, source string, page, size int) ([]models.FeedbackIngest, error) {
+// FeedbackCount mocks base method.
+func (m *MockDataStore) FeedbackCount(tenant, source string) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchFeedbacks", tenant, source, page, size)
+	ret := m.ctrl.Call(m, "FeedbackCount", tenant, source)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FeedbackCount indicates an expected call of FeedbackCount.
+func (mr *MockDataStoreMockRecorder) FeedbackCount(tenant, source interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeedbackCount", reflect.TypeOf((*MockDataStore)(nil).FeedbackCount), tenant, source)
+}
+
+// FetchFeedbacks mocks base method.
+func (m *MockDataStore) FetchFeedbacks(tenant string, page, size int, source ...string) ([]models.FeedbackIngest, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{tenant, page, size}
+	for _, a := range source {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "FetchFeedbacks", varargs...)
 	ret0, _ := ret[0].([]models.FeedbackIngest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FetchFeedbacks indicates an expected call of FetchFeedbacks.
-func (mr *MockDataStoreMockRecorder) FetchFeedbacks(tenant, source, page, size interface{}) *gomock.Call {
+func (mr *MockDataStoreMockRecorder) FetchFeedbacks(tenant, page, size interface{}, source ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchFeedbacks", reflect.TypeOf((*MockDataStore)(nil).FetchFeedbacks), tenant, source, page, size)
+	varargs := append([]interface{}{tenant, page, size}, source...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchFeedbacks", reflect.TypeOf((*MockDataStore)(nil).FetchFeedbacks), varargs...)
 }
 
 // Store mocks base method.

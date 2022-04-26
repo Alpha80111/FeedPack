@@ -18,7 +18,7 @@ func TestNewServer(t *testing.T) {
 		}
 	}()
 
-	url := "http://localhost:8088/push/message"
+	url := "http://localhost:8088/push/feedback"
 	payload := strings.NewReader(`{
     "tenant": "zoom.us",
     "source": "discourse",
@@ -187,4 +187,27 @@ func TestNewServer(t *testing.T) {
 	body, err := ioutil.ReadAll(res.Body)
 	assert.Nil(t, err)
 	assert.Equal(t, string(body), "Successfully processed message")
+
+	url = "http://localhost:8088/fetch/feedbacks"
+	payload = strings.NewReader(`{
+    "sources": [
+        "discourse"
+    ],
+    "tenant": "zoom.us",
+    "page": 1,
+    "size": 50
+}`)
+
+	req, err = http.NewRequest(http.MethodPost, url, payload)
+	assert.Nil(t, err)
+
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err = client.Do(req)
+	assert.Nil(t, err)
+
+	defer res.Body.Close()
+
+	body, err = ioutil.ReadAll(res.Body)
+	assert.Nil(t, err)
 }

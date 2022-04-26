@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 )
 
 //DataStore interface that supports storing and fetching feedbacks
 //go:generate mockgen -package=mock -destination=mock/dataaccess.go -source=dataaccess.go DataStore
 type DataStore interface {
 	Store(ingest models.FeedbackIngest) error
-	FetchFeedbacks(tenant, source string, page, size int) ([]models.FeedbackIngest, error)
+	FetchFeedbacks(tenant string, page, size int, source ...string) ([]models.FeedbackIngest, error)
+	FeedbackCount(tenant, source string) (int, error)
 }
 
 type params struct {
@@ -52,20 +54,50 @@ func (d *dataStore) Store(ingest models.FeedbackIngest) error {
 }
 
 //FetchFeedbacks fetches messages within the parameters passed
-func (d *dataStore) FetchFeedbacks(tenant, source string, page, size int) ([]models.FeedbackIngest, error) {
+func (d *dataStore) FetchFeedbacks(tenant string, page, size int, sources ...string) ([]models.FeedbackIngest, error) {
 
-	if source == "" || tenant == "" || page <= 0 || size <= 0 {
+	if tenant == "" || page <= 0 || size <= 0 {
 		return []models.FeedbackIngest{}, errors.New("no valid options passed")
 	}
 	var messages []models.FeedbackIngest
-	if tenant != "" {
-		if source != "" {
-			for i := (page - 1) * size; i < page*size && i < len(d.order[tenant][source]); i++ {
-				messages = append(messages, d.store[tenant][source][d.order[tenant][source][i]])
+
+	sort.Strings(sources)
+	recordStartIndex := (page - 1) * size
+	responseLength := 0
+	for i := range sources {
+		if recordStartIndex-len(sources[i]) >= 0 {
+			recordStartIndex -= len(sources[i])
+			continue
+		}
+
+		for _, j := range d.order[tenant][sources[i]][recordStartIndex:] {
+			messages = append(messages, d.store[tenant][sources[i]][j])
+			responseLength++
+			if responseLength >= size {
+				return messages, nil
 			}
 		}
+
+		recordStartIndex = 0
+
 	}
+
 	return messages, nil
+}
+
+func (d *dataStore) FeedbackCount(tenant, source string) (int, error) {
+	if source == "" || tenant == "" {
+		return 0, errors.New("no valid options passed")
+	}
+
+	if _, ok := d.store[tenant]; !ok {
+		return 0, nil
+	}
+	if _, ok := d.store[tenant][source]; !ok {
+		return 0, nil
+	}
+
+	return len(d.store[tenant][source]), nil
 }
 
 //NewDataStore initializes and returns a new DataStore

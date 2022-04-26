@@ -15,10 +15,10 @@ func TestDataStore_FetchFeedbacks(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	_, err = ds.FetchFeedbacks("tenant", "source", 1, 10)
+	_, err = ds.FetchFeedbacks("tenant", 1, 10, "source")
 	assert.Nil(t, err)
 
-	_, err = ds.FetchFeedbacks("", "source", 1, 10)
+	_, err = ds.FetchFeedbacks("", 1, 10, "source")
 	assert.NotNil(t, err)
 }
 

@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 )
 
 type server struct {
@@ -17,19 +16,7 @@ type server struct {
 	sources sources.SourceProcessor
 }
 
-func (s *server) init() error {
-
-	http.HandleFunc("/push/message", s.handleMessage)
-
-	err := http.ListenAndServe("localhost:8088", nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *server) handleMessage(w http.ResponseWriter, req *http.Request) {
+func (s *server) handleFeedback(w http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -64,7 +51,14 @@ func (s *server) handleMessage(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.Write([]byte(`Successfully processed message`))
+	_, err = w.Write([]byte(`Successfully processed message`))
+	if err != nil {
+		s.logger.Println("Push Handler: Successfully processed and stored message but failed to send response for req: tenant ",
+			reqBody.Tenant, " source: ", reqBody.Source)
+		return
+	}
+	s.logger.Println("Push Handler: Successfully processed and stored message for req: tenant ",
+		reqBody.Tenant, " source: ", reqBody.Source)
 }
 
 func (s *server) badRequestError(w http.ResponseWriter, er error) {
@@ -79,14 +73,4 @@ func (s *server) badRequestError(w http.ResponseWriter, er error) {
 		return
 	}
 	return
-}
-
-func NewServer(store dataaccess.DataStore) error {
-	s := server{
-		logger:  log.New(os.Stdout, "logger: ", 1),
-		ds:      store,
-		sources: sources.NewSourceProcessor(store),
-	}
-
-	return s.init()
 }

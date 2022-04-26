@@ -42,10 +42,16 @@ func main() {
 		}
 	}
 
-	messages, _ := ds.FetchFeedbacks("zoom.us", "discourse", 1, 20)
+	messages, _ := ds.FetchFeedbacks("zoom.us", 1, 2, "discourse")
 
 	for _, m := range messages {
-		log.Default().Println(m.Meta.ID, ": ", m.Data.Message)
+		log.Default().Println(m.Meta.ID)
+	}
+
+	messages, _ = ds.FetchFeedbacks("zoom.us", 2, 2, "discourse")
+
+	for _, m := range messages {
+		log.Default().Println(m.Meta.ID)
 	}
 
 	err := server.NewServer(ds)
