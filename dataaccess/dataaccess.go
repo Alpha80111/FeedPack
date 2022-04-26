@@ -3,7 +3,6 @@ package dataaccess
 import (
 	"enterpret/models"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"sort"
@@ -46,9 +45,9 @@ func (d *dataStore) Store(ingest models.FeedbackIngest) error {
 	if _, ok := d.store[ingest.Meta.Tenant][ingest.Meta.Source][ingest.Meta.ID]; !ok {
 		d.store[ingest.Meta.Tenant][ingest.Meta.Source][ingest.Meta.ID] = ingest
 		d.order[ingest.Meta.Tenant][ingest.Meta.Source] = append(d.order[ingest.Meta.Tenant][ingest.Meta.Source], ingest.Meta.ID)
-		fmt.Printf("Storing message: %s, %s, %s\n", ingest.Meta.Tenant, ingest.Meta.Source, ingest.Meta.ID)
+		d.logger.Printf("Storing message: %s, %s, %s\n", ingest.Meta.Tenant, ingest.Meta.Source, ingest.Meta.ID)
 	} else {
-		fmt.Printf("Duplicate message: %s, %s, %s\n", ingest.Meta.Tenant, ingest.Meta.Source, ingest.Meta.ID)
+		d.logger.Printf("Duplicate message: %s, %s, %s\n", ingest.Meta.Tenant, ingest.Meta.Source, ingest.Meta.ID)
 	}
 	return nil
 }

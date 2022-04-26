@@ -3,7 +3,7 @@ package sources
 import (
 	"enterpret/dataaccess"
 	"enterpret/sources/discourse"
-	_interface "enterpret/sources/interface"
+	_interface "enterpret/sources/sourceinterface"
 	"errors"
 )
 

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"enterpret/dataaccess"
 	"enterpret/models"
-	sourceInterface "enterpret/sources/interface"
+	sourceInterface "enterpret/sources/sourceinterface"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -47,6 +47,7 @@ func NewDiscourseFeedbackProcessor(store dataaccess.DataStore) sourceInterface.F
 func (p *discourseFeedbackProcessor) fetchPaginatedFeedbacks(params models.Params, page int) (models.DiscourseSearchResponse, error) {
 
 	urlString := fmt.Sprintf(p.feedbackSearchUrl, page, params.SearchQuery)
+	urlString = strings.ReplaceAll(urlString, " ", "%20")
 
 	if params.SearchQuery != "" {
 		urlString += "+"

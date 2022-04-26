@@ -17,6 +17,7 @@ type TenantConfig struct {
 	Sources []SourceConfig
 }
 
+//TC is the config used to fetch feedback for all tenants using the pull model
 var TC = []TenantConfig{
 	{
 		Name: "zoom.us",
@@ -27,6 +28,35 @@ var TC = []TenantConfig{
 					Since:       getTime(2000, 1, 1, 1, 1, 1, 1, time.Local),
 					Before:      getTime(2023, 1, 1, 1, 1, 1, 1, time.Local),
 					SearchQuery: "zoom.us",
+				},
+			},
+			{
+				Name: "discourse",
+				Params: models.Params{
+					Since:       getTime(2000, 1, 1, 1, 1, 1, 1, time.Local),
+					Before:      getTime(2023, 1, 1, 1, 1, 1, 1, time.Local),
+					SearchQuery: "zoom client",
+				},
+			},
+		},
+	},
+	{
+		Name: "adobe",
+		Sources: []SourceConfig{
+			{
+				Name: "discourse",
+				Params: models.Params{
+					Since:       getTime(2000, 1, 1, 1, 1, 1, 1, time.Local),
+					Before:      getTime(2023, 1, 1, 1, 1, 1, 1, time.Local),
+					SearchQuery: "creative cloud",
+				},
+			},
+			{
+				Name: "discourse",
+				Params: models.Params{
+					Since:       getTime(2000, 1, 1, 1, 1, 1, 1, time.Local),
+					Before:      getTime(2023, 1, 1, 1, 1, 1, 1, time.Local),
+					SearchQuery: "adobe",
 				},
 			},
 		},

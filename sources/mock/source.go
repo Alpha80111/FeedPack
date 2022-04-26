@@ -5,7 +5,7 @@
 package mock
 
 import (
-	sourceInterface "enterpret/sources/interface"
+	sourceInterface "enterpret/sources/sourceinterface"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"

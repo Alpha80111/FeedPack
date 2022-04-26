@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"enterpret/models"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -33,8 +32,6 @@ func (s *server) handleFetchRequest(w http.ResponseWriter, req *http.Request) {
 		s.badRequestError(w, err)
 		return
 	}
-
-	fmt.Println(reqBody)
 
 	sort.Strings(reqBody.Sources)
 	if reqBody.Records < 1 {
